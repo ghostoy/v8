@@ -1807,10 +1807,9 @@ class V8_EXPORT String : public Primitive {
   };
 
   /** Allocates a new string from UTF-8 data.*/
-  static Local<String> NewFromUtf8(Isolate* isolate,
-                                  const char* data,
-                                  NewStringType type = kNormalString,
-                                  int length = -1);
+  static Local<String> NewFromUtf8(Isolate* isolate, const char* data,
+                                   NewStringType type = kNormalString,
+                                   int length = -1);
 
   /** Allocates a new string from Latin-1 data.*/
   static Local<String> NewFromOneByte(

@@ -22868,3 +22868,36 @@ TEST(GetOwnPropertyDescriptor) {
   set->Call(x, 1, args);
   CHECK_EQ(v8_num(14), get->Call(x, 0, NULL));
 }
+
+
+TEST(NewStringRangeError) {
+  v8::Isolate* isolate = CcTest::isolate();
+  v8::HandleScope handle_scope(isolate);
+  LocalContext env;
+  const int length = i::String::kMaxLength + 1;
+  const int buffer_size = length * sizeof(uint16_t);
+  void* buffer = malloc(buffer_size);
+  memset(buffer, 'A', buffer_size);
+  {
+    v8::TryCatch try_catch;
+    char* data = reinterpret_cast<char*>(buffer);
+    CHECK(v8::String::NewFromUtf8(isolate, data, v8::String::kNormalString,
+                                  length).IsEmpty());
+    CHECK(try_catch.HasCaught());
+  }
+  {
+    v8::TryCatch try_catch;
+    uint8_t* data = reinterpret_cast<uint8_t*>(buffer);
+    CHECK(v8::String::NewFromOneByte(isolate, data, v8::String::kNormalString,
+                                     length).IsEmpty());
+    CHECK(try_catch.HasCaught());
+  }
+  {
+    v8::TryCatch try_catch;
+    uint16_t* data = reinterpret_cast<uint16_t*>(buffer);
+    CHECK(v8::String::NewFromTwoByte(isolate, data, v8::String::kNormalString,
+                                     length).IsEmpty());
+    CHECK(try_catch.HasCaught());
+  }
+  free(buffer);
+}
