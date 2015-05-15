@@ -409,7 +409,8 @@ THREADED_TEST(Script) {
 
 class TestResource: public String::ExternalStringResource {
  public:
-  TestResource(uint16_t* data, int* counter = NULL, bool owning_data = true)
+  explicit TestResource(uint16_t* data, int* counter = NULL,
+                        bool owning_data = true)
       : data_(data), length_(0), counter_(counter), owning_data_(owning_data) {
     while (data[length_]) ++length_;
   }
@@ -437,11 +438,12 @@ class TestResource: public String::ExternalStringResource {
 
 class TestAsciiResource: public String::ExternalAsciiStringResource {
  public:
-  TestAsciiResource(const char* data, int* counter = NULL, size_t offset = 0)
+  explicit TestAsciiResource(const char* data, int* counter = NULL,
+                             size_t offset = 0)
       : orig_data_(data),
         data_(data + offset),
         length_(strlen(data) - offset),
-        counter_(counter) { }
+        counter_(counter) {}
 
   ~TestAsciiResource() {
     i::DeleteArray(orig_data_);
@@ -15158,7 +15160,7 @@ struct RegExpInterruptionData {
 class RegExpInterruptionThread : public v8::base::Thread {
  public:
   explicit RegExpInterruptionThread(v8::Isolate* isolate)
-      : Thread("TimeoutThread"), isolate_(isolate) {}
+      : Thread(Options("TimeoutThread")), isolate_(isolate) {}
 
   virtual void Run() {
     for (regexp_interruption_data.loop_count = 0;
@@ -19366,10 +19368,10 @@ static int CalcFibonacci(v8::Isolate* isolate, int limit) {
 class IsolateThread : public v8::base::Thread {
  public:
   IsolateThread(v8::Isolate* isolate, int fib_limit)
-      : Thread("IsolateThread"),
+      : Thread(Options("IsolateThread")),
         isolate_(isolate),
         fib_limit_(fib_limit),
-        result_(0) { }
+        result_(0) {}
 
   void Run() {
     result_ = CalcFibonacci(isolate_, fib_limit_);
@@ -19448,9 +19450,9 @@ class InitDefaultIsolateThread : public v8::base::Thread {
   };
 
   explicit InitDefaultIsolateThread(TestCase testCase)
-      : Thread("InitDefaultIsolateThread"),
+      : Thread(Options("InitDefaultIsolateThread")),
         testCase_(testCase),
-        result_(false) { }
+        result_(false) {}
 
   void Run() {
     v8::Isolate* isolate = v8::Isolate::New();
@@ -21508,7 +21510,7 @@ class ThreadInterruptTest {
   class InterruptThread : public v8::base::Thread {
    public:
     explicit InterruptThread(ThreadInterruptTest* test)
-        : Thread("InterruptThread"), test_(test) {}
+        : Thread(Options("InterruptThread")), test_(test) {}
 
     virtual void Run() {
       struct sigaction action;
@@ -21916,7 +21918,7 @@ class RequestInterruptTestBaseWithSimpleInterrupt
   class InterruptThread : public v8::base::Thread {
    public:
     explicit InterruptThread(RequestInterruptTestBase* test)
-        : Thread("RequestInterruptTest"), test_(test) {}
+        : Thread(Options("RequestInterruptTest")), test_(test) {}
 
     virtual void Run() {
       test_->sem_.Wait();
@@ -22136,7 +22138,7 @@ class ClearInterruptFromAnotherThread
   class InterruptThread : public v8::base::Thread {
    public:
     explicit InterruptThread(ClearInterruptFromAnotherThread* test)
-        : Thread("RequestInterruptTest"), test_(test) {}
+        : Thread(Options("RequestInterruptTest")), test_(test) {}
 
     virtual void Run() {
       test_->sem_.Wait();
@@ -22731,32 +22733,6 @@ TEST(ScriptNameAndLineNumber) {
   CHECK_EQ(url, *utf8_name);
   int line_number = script->GetUnboundScript()->GetLineNumber(0);
   CHECK_EQ(13, line_number);
-}
-
-
-Local<v8::Context> call_eval_context;
-Local<v8::Function> call_eval_bound_function;
-static void CallEval(const v8::FunctionCallbackInfo<v8::Value>& args) {
-  v8::Context::Scope scope(call_eval_context);
-  args.GetReturnValue().Set(
-      call_eval_bound_function->Call(call_eval_context->Global(), 0, NULL));
-}
-
-
-TEST(CrossActivationEval) {
-  LocalContext env;
-  v8::Isolate* isolate = env->GetIsolate();
-  v8::HandleScope scope(isolate);
-  {
-    call_eval_context = v8::Context::New(isolate);
-    v8::Context::Scope scope(call_eval_context);
-    call_eval_bound_function =
-        Local<Function>::Cast(CompileRun("eval.bind(this, '1')"));
-  }
-  env->Global()->Set(v8_str("CallEval"),
-      v8::FunctionTemplate::New(isolate, CallEval)->GetFunction());
-  Local<Value> result = CompileRun("CallEval();");
-  CHECK_EQ(result, v8::Integer::New(isolate, 1));
 }
 
 
